@@ -1,0 +1,12 @@
+# Ignorar datos (son pesados y privados)
+data/
+
+# Ignorar modelos entrenados (pesados)
+models/*.pkl
+
+# Ignorar archivos de sistema y entorno python
+venv/
+.env
+.DS_Store
+__pycache__/
+*.ipynb_checkpoints
