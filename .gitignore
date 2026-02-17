@@ -2,7 +2,7 @@
 data/
 
 # Ignorar modelos entrenados (pesados)
-models/*.pkl
+models/*.joblib
 
 # Ignorar archivos de sistema y entorno python
 venv/
