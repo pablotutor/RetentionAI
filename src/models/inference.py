@@ -19,6 +19,23 @@ class ModelLoader:
         else:
             raise FileNotFoundError(f"❌ No se encuentra el modelo en {MODEL_PATH}")
         
+    def _preprocess(self, df: pd.DataFrame):
+        """Internal helper to clean data before prediction"""
+        df = df.copy()
+        
+        # 1. Type Corrections
+        if 'StockOptionLevel' in df.columns:
+            df['StockOptionLevel'] = df['StockOptionLevel'].astype(str)
+            
+        numeric_cols = ['MonthlyIncome', 'DistanceFromHome']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(float)
+                # Feature Engineering
+                df[f'Log_{col}'] = np.log1p(df[col])
+        
+        return df
+        
     def get_feature_importance(self):
         """
         Extrae los coeficientes del modelo para explicar qué variables pesan más.
@@ -109,5 +126,25 @@ class ModelLoader:
             # Tip: Imprime los tipos de datos para depurar si vuelve a fallar
             print("Tipos de datos actuales:\n", df_input.dtypes)
             raise ValueError(f"Error en inferencia: {str(e)}")
+        
+    def predict_batch(self, df: pd.DataFrame):
+        """
+        NUEVO: Predicción masiva para archivos Excel/CSV.
+        Devuelve el DF original con una columna extra 'Churn_Probability'
+        """
+        if not self.model: self.load_model()
+        
+        # Preprocess the whole dataframe
+        df_processed = self._preprocess(df)
+        
+        try:
+            # Predict probabilities for the whole batch
+            probabilities = self.model.predict_proba(df_processed)[:, 1]
+            df['Churn_Probability'] = probabilities
+            return df
+        except Exception as e:
+            raise ValueError(f"Batch Inference Error: {str(e)}")
+        
+    
 
 model_service = ModelLoader()

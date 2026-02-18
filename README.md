@@ -15,7 +15,7 @@ Employee turnover is one of the highest costs for HR departments. Replacing a ke
 This project follows MLOps best practices, decoupling the model training from the inference API.
 
 * **Data Processing:** Pandas & Scikit-Learn Pipelines (Custom Transformers).
-* **Model:** Random Forest / XGBoost (Supervised Classification).
+* **Model:** Logistic Regression / Random Forest / XGBoost (Supervised Classification).
 * **Backend/API:** FastAPI (Future implementation).
 * **Frontend:** Streamlit (Interactive Dashboard).
 * **Containerization:** Docker.
