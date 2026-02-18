@@ -23,14 +23,14 @@ This project follows MLOps best practices, decoupling the model training from th
 ## 📊 Project Structure
 ```text
 retention-ai/
-├── data/          # Raw and processed data (Git ignored)
-├── notebooks/     # Experimental Analysis (EDA)
-├── src/           # Production Source Code
-│   ├── data/      # Data loading logic
-│   ├── features/  # Feature Engineering pipelines
-│   └── models/    # Training and Evaluation scripts
-├── models/        # Serialized models (.pkl)
-└── app/           # Streamlit Frontend application
+├── data/              # Raw data (Git ignored)
+├── notebooks/         # EDA, Feature Engineering & Modeling experiments
+├── src/               # Production Source Code
+│   └── models/        # Inference logic & Model Loader class
+├── models/            # Serialized trained pipelines (.joblib)
+├── app/               # Streamlit Frontend application (main.py)
+├── Dockerfile         # Container configuration
+└── requirements.txt   # Python dependencies
 ```
 
 ## 🚀 How to Run (Docker)
