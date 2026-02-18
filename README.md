@@ -1,4 +1,4 @@
-# 🧠 RetentionAI: Employee Churn Prediction System
+# 🧬 RetentionAI: Employee Churn Prediction System
 
 ## 💼 Business Problem
 Employee turnover is one of the highest costs for HR departments. Replacing a key employee can cost up to **200% of their annual salary** due to recruitment fees, onboarding time, and lost productivity.
