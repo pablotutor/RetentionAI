@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import os
+import altair as alt
 
 # --- 1. CONFIGURACIÓN DEL PATH ---
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,7 +19,7 @@ st.set_page_config(
 )
 
 # --- 3. TÍTULO ---
-st.title("🧠 Retention AI: Predictor de Fuga de Talento")
+st.title("🧠 Retention AI")
 st.markdown("""
 Esta herramienta evalúa el riesgo de abandono basándose en factores demográficos y laborales.
 Rellena el formulario a continuación:
@@ -159,3 +160,92 @@ if predict_btn:
                     
         except Exception as e:
             st.error(f"Ocurrió un error en la predicción: {e}")
+            
+        
+        # --- 4. EXPLICABILIDAD (XAI) ---
+        st.markdown("---")
+        st.subheader("🔍 ¿Qué ha movido la aguja?")
+        st.write("Factores que más han influido en esta decisión concreta:")
+
+        # 1. Obtenemos los datos brutos del backend
+        df_imp = model_service.get_feature_importance()
+        
+        if not df_imp.empty:
+            # 2. LIMPIEZA DE NOMBRES (Para que se lean bien)
+            def clean_names(name):
+                name = name.replace('num__', '').replace('cat__', '').replace('remainder__', '')
+                # Diccionario de traducciones cortas
+                translations = {
+                    'TotalSatisfaction': 'Sat. Total',
+                    'StockOptionLevel': 'Stock Options',
+                    'OverTime_Yes': 'Horas Extra (Sí)',
+                    'OverTime_No': 'Horas Extra (No)',
+                    'MonthlyIncome': 'Salario',
+                    'Age': 'Edad',
+                    'YearsAtCompany': 'Años en Empresa',
+                    'YearsWithCurrManager': 'Años con Jefe',
+                    'DistanceFromHome': 'Distancia',
+                    'EnvironmentSatisfaction': 'Sat. Ambiente',
+                    'JobSatisfaction': 'Sat. Trabajo',
+                    'WorkLifeBalance': 'Balance Vida-Trabajo',
+                    'JobInvolvement': 'Involucración',
+                    'NumCompaniesWorked': 'Empresas Previas',
+                    'Log_MonthlyIncome': 'Log Salario',
+                    'BusinessTravel_Travel_Frequently': 'Viaja a menudo',
+                    'JobRole_Laboratory Technician': 'Técnico Laboratorio',
+                    'StockOptionLevel_0': 'No Accionista',
+                    'BusinessTravel_Non-Travel': 'No Viaja',
+                    'YearsSinceLastPromotion': 'Años desde promo.'
+                }
+                return translations.get(name, name) # Si no está en la lista, deja el original
+
+            df_imp['Variable'] = df_imp['Variable'].apply(clean_names)
+            
+            # 3. CREAR LÓGICA DE COLORES Y TIPO
+            # Si el peso es positivo (>0) -> Aumenta Riesgo (Rojo)
+            # Si el peso es negativo (<0) -> Protege/Fideliza (Verde)
+            df_imp['Tipo'] = df_imp['Peso'].apply(lambda x: 'Aumenta Riesgo 🚨' if x > 0 else 'Fideliza (Protege) 🛡️')
+            df_imp['Color'] = df_imp['Peso'].apply(lambda x: '#ff4b4b' if x > 0 else '#22c55e')
+            
+            # 4. SEPARAR TOP 5 y RESTO
+            top_5 = df_imp.head(5)
+            orden_visual = top_5["Variable"].to_list()
+            
+            # --- GRÁFICO CON ALTAIR (Para control total de colores) ---
+            base = alt.Chart(top_5).encode(
+                x=alt.X('Peso', title='Impacto en la Predicción'),
+                y=alt.Y('Variable', sort=orden_visual, title=None), # Ordena por valor
+                color=alt.Color('Tipo', scale=alt.Scale(domain=['Aumenta Riesgo 🚨', 'Fideliza (Protege) 🛡️'], range=['#ff4b4b', '#22c55e']), legend=alt.Legend(title="Efecto")),
+                tooltip=[
+                    alt.Tooltip('Variable', title='Factor'),
+                    alt.Tooltip('Peso', format='.2f', title='Peso')
+                ]
+            )
+            
+            chart = base.mark_bar()
+            st.altair_chart(chart, use_container_width=True)
+
+            # 5. "VER MÁS" (Expander para el resto)
+            with st.expander("Ver resto de factores (Detalle completo)"):
+                # Mostramos el resto (excluyendo el top 5 ya visto)
+                rest_df = df_imp.iloc[5:]
+                orden_visual_2 = rest_df["Variable"].to_list()
+                
+                if not rest_df.empty:
+                    # Reutilizamos la lógica del gráfico pero para todos los datos restantes
+                    base_rest = alt.Chart(rest_df).encode(
+                        x=alt.X('Peso', title='Impacto en la Predicción'),
+                        y=alt.Y('Variable', sort=orden_visual_2, title=None),
+                        color=alt.Color('Tipo', scale=alt.Scale(domain=['Aumenta Riesgo 🚨', 'Fideliza (Protege) 🛡️'], range=['#ff4b4b', '#22c55e']), legend=alt.Legend(title="Efecto")),
+                        tooltip=[
+                    alt.Tooltip('Variable', title='Factor'),
+                    alt.Tooltip('Peso', format='.2f', title='Peso')
+                ]
+                    )
+                    chart_rest = base_rest.mark_bar()
+                    st.altair_chart(chart_rest, use_container_width=True)
+                else:
+                    st.write("No hay más variables relevantes que mostrar.")
+
+        else:
+            st.warning("⚠️ No se pudieron extraer los factores de influencia.")

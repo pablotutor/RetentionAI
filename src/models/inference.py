@@ -18,6 +18,46 @@ class ModelLoader:
             print(f"✅ Modelo cargado desde: {MODEL_PATH}")
         else:
             raise FileNotFoundError(f"❌ No se encuentra el modelo en {MODEL_PATH}")
+        
+    def get_feature_importance(self):
+        """
+        Extrae los coeficientes del modelo para explicar qué variables pesan más.
+        """
+        if not self.model:
+            self.load_model()
+
+        try:
+            # 1. Acceder a los pasos del Pipeline
+            # Asumimos que tu pipeline tiene pasos llamados 'preprocessor' y 'classifier'
+            # (Es el estándar si usaste ColumnTransformer y LogisticRegression en un Pipeline)
+            classifier = self.model.named_steps['classifier']
+            preprocessor = self.model.named_steps['preprocessor']
+
+            # 2. Obtener los nombres de las features tras el OneHotEncoding
+            # Esto es necesario porque 'Department' se convierte en 'Department_Sales', etc.
+            feature_names = preprocessor.get_feature_names_out()
+
+            # 3. Obtener los coeficientes (pesos)
+            # LogisticRegression devuelve una matriz de forma (1, n_features), cogemos la primera fila
+            coefficients = classifier.coef_[0]
+
+            # 4. Crear DataFrame
+            df_imp = pd.DataFrame({
+                'Variable': feature_names,
+                'Peso': coefficients
+            })
+
+            # 5. Calcular impacto absoluto para ordenar
+            df_imp['AbsPeso'] = df_imp['Peso'].abs()
+            
+            # 6. Devolver el Top 10 ordenado
+            return df_imp.sort_values(by='AbsPeso', ascending=False).head(10)
+
+        except Exception as e:
+            print(f"Error extrayendo importancia: {e}")
+            # Si falla (ej: el modelo no es lineal o el pipeline es distinto), devolvemos vacío
+            return pd.DataFrame()
+        
 
     def predict(self, input_data: dict):
         if not self.model:
